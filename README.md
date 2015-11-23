@@ -3,8 +3,8 @@
 This is a simple webtool to add URLs to an IPFS node.
 
 **Latest Version:**
-- http://localhost:8080/ipfs/QmZTEDF8yN3dMGcYqtyTzuR8PFsTqmLLBxsVZ4jzV2a1rd
-- https://ipfs.io/ipfs/QmZTEDF8yN3dMGcYqtyTzuR8PFsTqmLLBxsVZ4jzV2a1rd (*)
+- [http://localhost:8080/ipfs/QmZTEDF8yN3dMGcYqtyTzuR8PFsTqmLLBxsVZ4jzV2a1rd](http://localhost:8080/ipfs/QmZTEDF8yN3dMGcYqtyTzuR8PFsTqmLLBxsVZ4jzV2a1rd)
+- [https://ipfs.io/ipfs/QmZTEDF8yN3dMGcYqtyTzuR8PFsTqmLLBxsVZ4jzV2a1rd](https://ipfs.io/ipfs/QmZTEDF8yN3dMGcYqtyTzuR8PFsTqmLLBxsVZ4jzV2a1rd) (*)
 
 (*) wont work directly out of https://ipfs.io until https://github.com/ipfs/infrastructure/issues/105 is fixed.
 
