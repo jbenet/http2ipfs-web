@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>http2ipfs - add URLs to ipfs</title>
+
+<script src="lib/zepto.min.js"></script>
+<script src="lib/ipfsapi.min.js"></script>
+<link rel="stylesheet" href="lib/bootstrap/css/bootstrap.min.css" />
+<style>
+
+body {
+  font-family: "Helvetica Neue";
+}
+
+iframe {
+  border: 1px solid #ccc;
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="row">
+    <div class="col-x-12">
+
+      <h1>Add a URL to IPFS</h1>
+
+      <form>
+        <div class="form-group">
+          <label for="url">HTTP URL to add to IPFS</label>
+          <input type="text" class="form-control" id="url"
+            placeholder="Paste URL to add - http://i.imgur.com/AW12e.gif">
+        </div>
+        <div class="form-group">
+          <label for="filename">New Filename</label>
+          <input type="text" class="form-control" id="filename"
+            placeholder="kitty.gif -- or leave blank to use original name">
+        </div>
+        <div class="form-group">
+          <label for="api-endpoint">IPFS API Endpoint
+            <small>make sure you enable either CORS or writable gateway</small>
+          </label>
+          <input type="text" class="form-control" id="api-endpoint"
+            value="/ip4/127.0.0.1/tcp/5001"
+            placeholder="/ip4/127.0.0.1/tcp/5001">
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-default btn-success btn-lg" id="add2ipfs">
+            <i class="glyphicon glyphicon-plus"></i> Add to IPFS
+          </button>
+        </div>
+        <div class="alert" role="alert" id="alert"></div>
+      </form>
+
+      <hr />
+      <div id="result" style="display: none;">
+        <h1>Result</h1>
+
+        <br /><b>IPFS Path:</b> <span id="ipfs-path" class="small code"></span>
+
+        <br /><b>Local HTTP-to-IPFS Gateway:</b>
+          <a id="ipfs-gway-local" class="code"></a>
+        <iframe id="iframe-local" width="100%" height="600px"></iframe>
+
+        <br /><b>Global HTTP-to-IPFS Gateway:</b>
+          <a id="ipfs-gway-global" class="code"></a>
+        <iframe id="iframe-global" width="100%" height="600px"></iframe>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function setup() {
+  $('button#add2ipfs').on('click', function(e) {
+    e.preventDefault()
+    add2ipfs()
+    return false
+  })
+}
+$(document).ready(setup)
+
+function indicate(cls, text) {
+  $('#alert').addClass('alert-' + cls)
+  $('#alert').text(text)
+}
+
+function add2ipfs() {
+  $('result').hide()
+
+  var url = $('input#url').val().trim()
+  if (!url || url.length < 1) {
+    return indicate('danger', 'error: url field is empty')
+  }
+
+  var filename = $('input#filename').val().trim()
+  if (!filename || filename.length < 1) {
+    filename = urlFilename(url)
+  }
+
+  var endpoint = $('input#api-endpoint').val().trim()
+  if (!endpoint) {
+    return indicate('danger', 'invalid api endpoint')
+  }
+
+  var ipfs = ipfsAPI(endpoint)
+  indicate('info', 'working...')
+
+  addURL(ipfs, url, filename, function(err, path) {
+    if (err) return indicate('danger', 'error: ' + err)
+
+    indicate('success', 'added '+ path)
+    console.log(path)
+    setResult(path)
+  })
+}
+
+function addURL(ipfs, url, filename, cb) {
+  console.log("ipfs add -w", url)
+  ipfs.add(url, {wrap: true}, function(err, res) {
+    if (err) return err
+
+    if (!Array.isArray(res)) {
+      res = [res]
+    }
+
+    console.log(res)
+    wrapObject(ipfs, res.pop().Hash, filename, cb)
+  })
+}
+
+// this can go away once https://github.com/ipfs/js-ipfs-api/issues/140 is fixed
+function wrapObject(ipfs, hash, name, cb) {
+
+  var emptyDir = 'QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn'
+  var args = ['add-link', name, hash]
+  console.log('ipfs object patch', emptyDir, args)
+
+  ipfs.object.patch(emptyDir, args, function(err, data) {
+    if (err) return cb(err)
+
+    console.log(data)
+    var path = '/ipfs/'+ data.Hash +'/'+ name
+    console.log(path)
+    cb(null, path)
+  })
+}
+
+function urlFilename(url) {
+  var path = mklocation(url).pathname
+  return path.split('/').pop()
+}
+
+function mklocation(href) {
+  var l = document.createElement('a')
+  l.href = href
+  return l
+}
+
+function setResult(path) {
+  $('#ipfs-path').text(path)
+  $('#result').show()
+
+  var local = window.location.protocol +'//'+ window.location.host + path
+  $('#ipfs-gway-local').text(local)
+  $('#ipfs-gway-local').attr('href', local)
+  $('#iframe-local').attr('src', local)
+
+  var global = "https://ipfs.io" + path
+  $('#ipfs-gway-global').text(global)
+  $('#ipfs-gway-global').attr('href', global)
+  $('#iframe-global').attr('src', global)
+}
+
+</script>
+</body>
+</html>
