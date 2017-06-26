@@ -1,5 +1,5 @@
 function setup() {
-    $('button#add2ipfs').on('click', function(e) {
+    $('button#add2ipfs').on('click', function (e) {
         e.preventDefault();
         add2ipfs();
         return false
@@ -10,7 +10,7 @@ $(document).ready(setup);
 function indicate(cls, text) {
     $('#alert').addClass('alert-' + cls);
     $('#alert').text(text);
-    console.log(cls+":"+text);
+    console.log(cls + ":" + text);
 }
 
 function add2ipfs() {
@@ -34,29 +34,45 @@ function add2ipfs() {
     var ipfs = ipfsAPI(endpoint);
     indicate('info', 'working...');
 
-    addURL(ipfs, url, filename, function(err, path) {
+    addURL(ipfs, url, filename, function (err, path) {
         if (err) return indicate('danger', 'error: ' + err);
 
-        indicate('success', 'added '+ path);
+        indicate('success', 'added ' + path);
         console.log(path);
         setResult(path)
     })
 }
-
 function addURL(ipfs, url, filename, cb) {
     console.log("ipfs add -w", url);
-    ipfs.add(url, {pin:false}, function(err, res) {
-        if (err) return err;
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://allorigins.us/get?method=raw&url=' + encodeURIComponent(url), true);
+    xhr.responseType = 'arraybuffer';
 
-        if (!Array.isArray(res)) {
-            res = [res]
+    xhr.onload = function (e) {
+        if (this.status === 200) {
+            // get binary data as a response
+            var mydata = this.response;
+            var ipfsdata = [{
+                path:"/"+filename,
+                contents:new ipfs.Buffer(mydata, "binary")
+            }];
+            ipfs.add(ipfsdata, {pin: false}, function (err, res) {
+                if (err) return err;
+
+                if (!Array.isArray(res)) {
+                    res = [res]
+                }
+
+                console.log(res);
+                var path = '/ipfs/' + res.Hash + '/' + filename;
+                console.log(path);
+                wrapObject(ipfs, res.pop().Hash, filename, cb)
+            })
+
         }
+    };
 
-        console.log(res);
-        var path = '/ipfs/'+ res.Hash +'/'+ filename;
-        console.log(path);
-        wrapObject(ipfs, res.pop().Hash, filename, cb)
-    })
+    xhr.send();
 }
 
 // this can go away once https://github.com/ipfs/js-ipfs-api/issues/140 is fixed
@@ -65,11 +81,11 @@ function wrapObject(ipfs, hash, name, cb) {
     var emptyDir = 'QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn';
     var args = [name, hash];
     console.log('ipfs object patch', emptyDir, args);
-    ipfs.object.patch(emptyDir, args, function(err, data) {
+    ipfs.object.patch(emptyDir, args, function (err, data) {
         if (err) return cb(err);
 
         console.log(data);
-        var path = '/ipfs/'+ data.Hash +'/'+ name;
+        var path = '/ipfs/' + data.Hash + '/' + name;
         console.log(path);
         cb(null, path)
     })
@@ -90,7 +106,7 @@ function setResult(path) {
     $('#ipfs-path').text(path);
     $('#result').show();
 
-    var local = window.location.protocol +'//'+ window.location.host + path;
+    var local = window.location.protocol + '//' + window.location.host + path;
     $('#ipfs-gway-local').text(local);
     $('#ipfs-gway-local').attr('href', local);
     $('#iframe-local').attr('src', local);
